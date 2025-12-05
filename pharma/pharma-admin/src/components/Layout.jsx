@@ -13,7 +13,7 @@ export default function Layout() {
   const navLinkClass = ({ isActive }) =>
     `flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition ${
       isActive
-        ? "bg-indigo-600 text-white shadow"
+        ? "bg-red-600 text-white shadow"
         : "text-gray-600 hover:bg-gray-100 hover:text-indigo-600"
     }`;
 
@@ -22,12 +22,12 @@ export default function Layout() {
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-lg flex flex-col">
         <div className="px-6 py-4 border-b flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold">
+          <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-white font-bold">
             A
           </div>
           <div>
             <h1 className="font-semibold text-gray-800">Admin Panel</h1>
-            <p className="text-xs text-gray-400">JS Cosmetics</p>
+            <p className="text-xs text-gray-400">JS Pharma</p>
           </div>
         </div>
 

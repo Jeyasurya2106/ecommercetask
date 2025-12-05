@@ -18,8 +18,8 @@ const app = express();
 app.use(
   cors({
     origin: [
-      'http://localhost:5173', // Vite admin
-      'http://localhost:3000', // Next.js site 
+      'http://localhost:5174', // Vite admin
+      // 'http://localhost:3000', // Next.js site 
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
