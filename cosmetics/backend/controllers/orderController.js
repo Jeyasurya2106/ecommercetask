@@ -1,11 +1,10 @@
-// src/controllers/orderController.js
 import { Order, OrderItem } from '../models/order.js';
 import Product from '../models/product.js';
 import User from '../models/user.js';
 import { sendEmail } from '../utils/mailer.js';
 
 export async function createOrder(req, res) {
-  const userId = req.userId; // set by verifyToken middleware
+  const userId = req.userId; 
   const { items, shipping_address } = req.body;
 
   if (!items || !Array.isArray(items) || items.length === 0) {
@@ -16,7 +15,6 @@ export async function createOrder(req, res) {
   try {
     let total = 0;
 
-    // IMPORTANT: use UserId (capital U) to match Sequelize association
     const order = await Order.create(
       { UserId: userId, total: 0, shipping_address },
       { transaction: t }
@@ -35,7 +33,6 @@ export async function createOrder(req, res) {
       const lineTotal = parseFloat(prod.price) * it.quantity;
       total += lineTotal;
 
-      // IMPORTANT: use OrderId & ProductId to match associations
       await OrderItem.create(
         {
           OrderId: order.id,
@@ -52,7 +49,6 @@ export async function createOrder(req, res) {
 
     const user = await User.findByPk(userId);
 
-    // IMPORTANT: filter by OrderId, not orderId
     const orderItems = await OrderItem.findAll({
       where: { OrderId: order.id },
       include: Product,
@@ -67,7 +63,6 @@ export async function createOrder(req, res) {
 
     const html = `<p>Thanks for your order. Order #${order.id}</p><ul>${itemsHtml}</ul><p>Total: ₹${total}</p>`;
 
-    // Emails (already wrapped in try/catch)
     try {
       await sendEmail({
         to: user.email,
@@ -116,7 +111,6 @@ export async function listOrdersForUser(req, res) {
   try {
     const userId = req.userId;
 
-    // IMPORTANT: filter by UserId (capital U)
     const orders = await Order.findAll({
       where: { UserId: userId },
       include: [{ model: OrderItem, include: [Product] }],
