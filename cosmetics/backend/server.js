@@ -1,5 +1,6 @@
 import express from 'express';
 import dotenv from 'dotenv';
+import cors from 'cors';
 dotenv.config();
 import sequelize from './config/db.js';
 import './models/index.js';
@@ -12,6 +13,21 @@ import User from './models/user.js';
 import Category from './models/category.js';
 
 const app = express();
+
+
+app.use(
+  cors({
+    origin: [
+      'http://localhost:5173', // Vite admin
+      'http://localhost:3000', // Next.js site 
+    ],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
+
+
 app.use(express.json());
 
 // routes
