@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getCart, updateQuantity, removeFromCart, getCartTotal, clearCart } from '@/lib/cartStore';
-import { createOrder } from '@/lib/api';
-import { saveOrder } from '@/lib/cartStore';
+import { createOrder, getUser } from '@/lib/api';
 import { ShoppingCart } from 'lucide-react';
 import CartItem from '@/component/cartItem';
 
@@ -13,6 +12,7 @@ export default function CartPage() {
   const router = useRouter();
   const [cart, setCart] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [shippingAddress, setShippingAddress] = useState('');
 
   useEffect(() => {
     loadCart();
@@ -42,20 +42,32 @@ export default function CartPage() {
       return;
     }
 
+    // Check if user is logged in
+    const user = getUser();
+    if (!user) {
+      // Redirect to login with return URL
+      router.push('/login?redirect=/cart');
+      return;
+    }
+
+    if (!shippingAddress.trim()) {
+      alert('Please enter your shipping address');
+      return;
+    }
+
     setLoading(true);
 
+    // Prepare order data according to backend API format
     const orderData = {
-      items: cart,
-      total: getCartTotal(cart),
-      shippingAddress: 'Sample Address (Add form for this)',
-      paymentMethod: 'COD',
-      orderDate: new Date().toISOString(),
-      status: 'confirmed'
+      shipping_address: shippingAddress,
+      items: cart.map(item => ({
+        productId: item.id,
+        quantity: item.quantity
+      }))
     };
 
     try {
       const order = await createOrder(orderData);
-      saveOrder(order);
       clearCart();
       setCart([]);
       window.dispatchEvent(new Event('cartUpdated'));
@@ -63,7 +75,7 @@ export default function CartPage() {
       router.push('/orders');
     } catch (error) {
       console.error('Checkout error:', error);
-      alert('Failed to place order. Please try again.');
+      alert(error.message || 'Failed to place order. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -94,7 +106,7 @@ export default function CartPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            <div className="bg-white rounded-lg shadow">
+            <div className="bg-white rounded-lg shadow-md">
               {cart.map(item => (
                 <CartItem
                   key={item.id}
@@ -116,7 +128,7 @@ export default function CartPage() {
 
           {/* Order Summary */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-6 sticky top-24">
+            <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
               <h2 className="text-2xl font-bold mb-6">Order Summary</h2>
 
               <div className="space-y-4 mb-6">
@@ -134,32 +146,35 @@ export default function CartPage() {
                 </div>
               </div>
 
-              {/* Promo Code */}
+              {/* Shipping Address */}
               <div className="mb-6">
-                <input
-                  type="text"
-                  placeholder="Enter promo code"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-teal-500 mb-2"
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Shipping Address *
+                </label>
+                <textarea
+                  value={shippingAddress}
+                  onChange={(e) => setShippingAddress(e.target.value)}
+                  placeholder="Enter your complete shipping address..."
+                  rows={3}
+                  className="w-full px-4 py-2 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-teal-500 resize-none"
+                  required
                 />
-                <button className="w-full text-teal-600 hover:text-teal-700 font-semibold text-sm">
-                  Apply Code
-                </button>
               </div>
 
               {/* Checkout Button */}
               <button
                 onClick={handleCheckout}
                 disabled={loading}
-                className="w-full bg-teal-600 text-white py-4 rounded-lg hover:bg-teal-700 font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-teal-600 text-white py-4 rounded-lg hover:bg-teal-700 font-bold text-lg transition disabled:opacity-50 disabled:cursor-not-allowed shadow-md"
               >
-                {loading ? 'Processing...' : 'Proceed to Checkout'}
+                {loading ? 'Processing...' : 'Place Order'}
               </button>
 
-              {/* Trust Badges */}
+              {/* Security Badge */}
               <div className="mt-6 pt-6 border-t">
-                <p className="text-xs text-gray-600 text-center mb-3">We Accept</p>
-                <div className="flex justify-center gap-2 text-2xl">
-                  💳 🏦 📱
+                <div className="flex items-center justify-center gap-2 text-sm text-gray-600">
+                  <span className="text-green-600">🔒</span>
+                  <span>Secure Checkout</span>
                 </div>
               </div>
             </div>

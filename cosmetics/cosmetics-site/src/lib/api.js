@@ -1,233 +1,185 @@
 // src/lib/api.js
-// API Configuration - Change these endpoints to match your backend
+// API Configuration
 
-export const API_BASE_URL = 'https://your-api-domain.com/api';
+export const API_BASE_URL = 'http://localhost:4000/api';
 
-export const API_ENDPOINTS = {
-  categories: `${API_BASE_URL}/categories`,
-  products: `${API_BASE_URL}/products`,
-  productsByCategory: (categoryId) => `${API_BASE_URL}/products?category=${categoryId}`,
-  productDetail: (productId) => `${API_BASE_URL}/products/${productId}`,
-  cart: `${API_BASE_URL}/cart`,
-  orders: `${API_BASE_URL}/orders`,
-  createOrder: `${API_BASE_URL}/orders/create`,
+// Auth Helper Functions
+export const getAuthToken = () => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem('token');
 };
 
-// Mock Data (Remove when API is ready)
-export const mockCategories = [
-  { 
-    id: 1, 
-    name: 'Face', 
-    slug: 'face', 
-    image: '🧴', 
-    subcategories: ['Face Wash', 'Face Cream', 'Face Serum', 'Face Mask'] 
-  },
-  { 
-    id: 2, 
-    name: 'Hair', 
-    slug: 'hair', 
-    image: '💇', 
-    subcategories: ['Shampoo', 'Conditioner', 'Hair Oil', 'Hair Mask'] 
-  },
-  { 
-    id: 3, 
-    name: 'Body', 
-    slug: 'body', 
-    image: '🧼', 
-    subcategories: ['Body Wash', 'Body Lotion', 'Body Scrub', 'Body Oil'] 
-  },
-  { 
-    id: 4, 
-    name: 'Baby', 
-    slug: 'baby', 
-    image: '👶', 
-    subcategories: ['Baby Wash', 'Baby Lotion', 'Baby Oil', 'Diapers'] 
-  },
-];
+export const setAuthToken = (token) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('token', token);
+};
 
-export const mockProducts = [
-  { 
-    id: 1, 
-    name: 'Vitamin C Face Wash', 
-    category: 1, 
-    subcategory: 'Face Wash', 
-    price: 299, 
-    image: '🍊', 
-    rating: 4.5, 
-    reviews: 1200, 
-    description: 'Brightening face wash with Vitamin C that helps reduce dark spots and gives you radiant skin.' 
-  },
-  { 
-    id: 2, 
-    name: 'Onion Hair Oil', 
-    category: 2, 
-    subcategory: 'Hair Oil', 
-    price: 599, 
-    image: '🧅', 
-    rating: 4.7, 
-    reviews: 2500, 
-    description: 'Reduces hair fall and promotes growth with natural onion extracts and essential oils.' 
-  },
-  { 
-    id: 3, 
-    name: 'Ubtan Face Mask', 
-    category: 1, 
-    subcategory: 'Face Mask', 
-    price: 399, 
-    image: '✨', 
-    rating: 4.6, 
-    reviews: 980, 
-    description: 'Traditional ubtan formula for glowing skin with turmeric and sandalwood.' 
-  },
-  { 
-    id: 4, 
-    name: 'Tea Tree Shampoo', 
-    category: 2, 
-    subcategory: 'Shampoo', 
-    price: 449, 
-    image: '🌿', 
-    rating: 4.4, 
-    reviews: 1500, 
-    description: 'Anti-dandruff formula with tea tree oil that cleanses and soothes the scalp.' 
-  },
-  { 
-    id: 5, 
-    name: 'Rose Body Lotion', 
-    category: 3, 
-    subcategory: 'Body Lotion', 
-    price: 349, 
-    image: '🌹', 
-    rating: 4.5, 
-    reviews: 800, 
-    description: 'Hydrating rose-infused lotion that leaves skin soft and fragrant all day.' 
-  },
-  { 
-    id: 6, 
-    name: 'Baby Moisturizing Lotion', 
-    category: 4, 
-    subcategory: 'Baby Lotion', 
-    price: 299, 
-    image: '🍼', 
-    rating: 4.8, 
-    reviews: 1800, 
-    description: 'Gentle moisturizer for babies with natural ingredients and no harmful chemicals.' 
-  },
-  { 
-    id: 7, 
-    name: 'Charcoal Face Scrub', 
-    category: 1, 
-    subcategory: 'Face Scrub', 
-    price: 349, 
-    image: '⚫', 
-    rating: 4.3, 
-    reviews: 650, 
-    description: 'Deep cleansing charcoal scrub that removes impurities and dead skin cells.' 
-  },
-  { 
-    id: 8, 
-    name: 'Argan Hair Serum', 
-    category: 2, 
-    subcategory: 'Hair Serum', 
-    price: 499, 
-    image: '💧', 
-    rating: 4.6, 
-    reviews: 1100, 
-    description: 'Nourishing argan oil serum for smooth, frizz-free hair with natural shine.' 
-  },
-];
+export const removeAuthToken = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+};
 
-// API Functions
-export const fetchCategories = async () => {
+export const getUser = () => {
+  if (typeof window === 'undefined') return null;
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+};
+
+export const setUser = (user) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem('user', JSON.stringify(user));
+};
+
+// API Request Helper
+const apiRequest = async (url, options = {}) => {
+  const token = getAuthToken();
+  const headers = {
+    'Content-Type': 'application/json',
+    ...options.headers,
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+
   try {
-    // Uncomment when API is ready:
-    // const response = await fetch(API_ENDPOINTS.categories);
-    // if (!response.ok) throw new Error('Failed to fetch categories');
-    // return await response.json();
-    
-    // Using mock data for now
-    return mockCategories;
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'API request failed');
+    }
+
+    return data;
   } catch (error) {
-    console.error('Error fetching categories:', error);
-    return mockCategories;
+    console.error('API Error:', error);
+    throw error;
   }
 };
 
-export const fetchProducts = async (categoryId = null, subcategory = null) => {
+// Auth API
+export const register = async (userData) => {
+  const data = await apiRequest(`${API_BASE_URL}/auth/register`, {
+    method: 'POST',
+    body: JSON.stringify(userData),
+  });
+  
+  if (data.token) {
+    setAuthToken(data.token);
+    setUser(data.user);
+  }
+  
+  return data;
+};
+
+export const login = async (credentials) => {
+  const data = await apiRequest(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    body: JSON.stringify(credentials),
+  });
+  
+  if (data.token) {
+    setAuthToken(data.token);
+    setUser(data.user);
+  }
+  
+  return data;
+};
+
+export const logout = () => {
+  removeAuthToken();
+  window.location.href = '/';
+};
+
+// Categories API
+export const fetchCategories = async () => {
   try {
-    // Uncomment when API is ready:
-    // const url = categoryId 
-    //   ? API_ENDPOINTS.productsByCategory(categoryId) 
-    //   : API_ENDPOINTS.products;
-    // const response = await fetch(url);
-    // if (!response.ok) throw new Error('Failed to fetch products');
-    // return await response.json();
-    
-    // Using mock data for now
-    let filtered = mockProducts;
+    const data = await apiRequest(`${API_BASE_URL}/categories`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching categories:', error);
+    return [];
+  }
+};
+
+export const fetchCategoriesWithProducts = async () => {
+  try {
+    const data = await apiRequest(`${API_BASE_URL}/categories/with-products`);
+    return data;
+  } catch (error) {
+    console.error('Error fetching categories with products:', error);
+    return [];
+  }
+};
+
+export const createCategory = async (categoryData) => {
+  return await apiRequest(`${API_BASE_URL}/categories`, {
+    method: 'POST',
+    body: JSON.stringify(categoryData),
+  });
+};
+
+// Products API
+export const fetchProducts = async (categoryId = null) => {
+  try {
+    let url = `${API_BASE_URL}/products`;
     if (categoryId) {
-      filtered = filtered.filter(p => p.category === parseInt(categoryId));
+      url += `?categoryId=${categoryId}`;
     }
-    if (subcategory) {
-      filtered = filtered.filter(p => p.subcategory === subcategory);
-    }
-    return filtered;
+    const data = await apiRequest(url);
+    return data;
   } catch (error) {
     console.error('Error fetching products:', error);
-    return mockProducts;
+    return [];
   }
 };
 
 export const fetchProductById = async (productId) => {
   try {
-    // Uncomment when API is ready:
-    // const response = await fetch(API_ENDPOINTS.productDetail(productId));
-    // if (!response.ok) throw new Error('Failed to fetch product');
-    // return await response.json();
-    
-    // Using mock data for now
-    return mockProducts.find(p => p.id === parseInt(productId));
+    const data = await apiRequest(`${API_BASE_URL}/products/${productId}`);
+    return data;
   } catch (error) {
     console.error('Error fetching product:', error);
     return null;
   }
 };
 
+export const createProduct = async (productData) => {
+  return await apiRequest(`${API_BASE_URL}/products`, {
+    method: 'POST',
+    body: JSON.stringify(productData),
+  });
+};
+
+// Orders API
 export const createOrder = async (orderData) => {
+  return await apiRequest(`${API_BASE_URL}/orders`, {
+    method: 'POST',
+    body: JSON.stringify(orderData),
+  });
+};
+
+export const fetchMyOrders = async () => {
   try {
-    // Uncomment when API is ready:
-    // const response = await fetch(API_ENDPOINTS.createOrder, {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(orderData)
-    // });
-    // if (!response.ok) throw new Error('Failed to create order');
-    // return await response.json();
-    
-    // Mock response for now
-    return {
-      id: Date.now(),
-      ...orderData,
-      orderDate: new Date().toISOString(),
-      status: 'confirmed'
-    };
+    const data = await apiRequest(`${API_BASE_URL}/orders`);
+    return data;
   } catch (error) {
-    console.error('Error creating order:', error);
-    throw error;
+    console.error('Error fetching orders:', error);
+    return [];
   }
 };
 
-export const fetchOrders = async () => {
+export const fetchAllOrders = async () => {
   try {
-    // Uncomment when API is ready:
-    // const response = await fetch(API_ENDPOINTS.orders);
-    // if (!response.ok) throw new Error('Failed to fetch orders');
-    // return await response.json();
-    
-    // Return from localStorage for now
-    const orders = localStorage.getItem('orders');
-    return orders ? JSON.parse(orders) : [];
+    const data = await apiRequest(`${API_BASE_URL}/orders/admin`);
+    return data;
   } catch (error) {
-    console.error('Error fetching orders:', error);
+    console.error('Error fetching all orders:', error);
     return [];
   }
 };

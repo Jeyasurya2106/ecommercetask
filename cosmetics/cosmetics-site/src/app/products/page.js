@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { fetchCategories, fetchProducts, mockCategories } from '@/lib/api';
+import { fetchCategories, fetchProducts } from '@/lib/api';
 import Breadcrumb from '@/component/breadCrumbs';
 import ProductCard from '@/component/productCard';
 
@@ -14,7 +14,6 @@ export default function ProductsPage() {
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [selectedSubcategory, setSelectedSubcategory] = useState(null);
   const [sortBy, setSortBy] = useState('featured');
   const [loading, setLoading] = useState(true);
 
@@ -24,39 +23,39 @@ export default function ProductsPage() {
 
   const loadData = async () => {
     setLoading(true);
-    const cats = await fetchCategories();
-    setCategories(cats);
+    try {
+      const cats = await fetchCategories();
+      setCategories(cats);
 
-    if (categoryId) {
-      const category = cats.find(c => c.id === parseInt(categoryId));
-      setSelectedCategory(category);
+      if (categoryId) {
+        const category = cats.find(c => c.id === parseInt(categoryId));
+        setSelectedCategory(category);
+      } else {
+        setSelectedCategory(null);
+      }
+
+      let prods = await fetchProducts(categoryId);
+
+      // Filter by search query
+      if (searchQuery) {
+        prods = prods.filter(p =>
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.description && p.description.toLowerCase().includes(searchQuery.toLowerCase()))
+        );
+      }
+
+      setProducts(prods);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
     }
-
-    let prods = await fetchProducts(categoryId);
-
-    // Filter by search query
-    if (searchQuery) {
-      prods = prods.filter(p =>
-        p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        p.description.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    }
-
-    setProducts(prods);
-    setLoading(false);
   };
 
   const handleCategoryClick = (category) => {
     setSelectedCategory(category);
-    setSelectedSubcategory(null);
     window.history.pushState({}, '', `/products?category=${category.id}`);
     loadData();
-  };
-
-  const handleSubcategoryClick = (subcategory) => {
-    setSelectedSubcategory(subcategory);
-    const filtered = products.filter(p => p.subcategory === subcategory);
-    setProducts(filtered);
   };
 
   const handleSort = (value) => {
@@ -70,8 +69,8 @@ export default function ProductsPage() {
       case 'price-high':
         sorted.sort((a, b) => b.price - a.price);
         break;
-      case 'rating':
-        sorted.sort((a, b) => b.rating - a.rating);
+      case 'name':
+        sorted.sort((a, b) => a.name.localeCompare(b.name));
         break;
       default:
         break;
@@ -96,18 +95,17 @@ export default function ProductsPage() {
       <div className="flex flex-col md:flex-row gap-8">
         {/* Sidebar Filters */}
         <aside className="w-full md:w-64 flex-shrink-0">
-          <div className="bg-white rounded-lg shadow p-6 sticky top-24">
-            <h3 className="font-bold text-lg mb-4">Categories</h3>
+          <div className="bg-white rounded-lg shadow-md p-6 sticky top-24">
+            <h3 className="font-bold text-lg mb-4 text-gray-800">Categories</h3>
             <div className="space-y-2">
               <button
                 onClick={() => {
                   setSelectedCategory(null);
-                  setSelectedSubcategory(null);
                   window.history.pushState({}, '', '/products');
                   loadData();
                 }}
                 className={`block w-full text-left px-4 py-2 rounded transition ${
-                  !selectedCategory ? 'bg-teal-100 text-teal-700' : 'hover:bg-gray-100'
+                  !selectedCategory ? 'bg-teal-100 text-teal-700 font-semibold' : 'hover:bg-gray-100'
                 }`}
               >
                 All Products
@@ -118,42 +116,21 @@ export default function ProductsPage() {
                   onClick={() => handleCategoryClick(cat)}
                   className={`block w-full text-left px-4 py-2 rounded transition ${
                     selectedCategory?.id === cat.id
-                      ? 'bg-teal-100 text-teal-700'
+                      ? 'bg-teal-100 text-teal-700 font-semibold'
                       : 'hover:bg-gray-100'
                   }`}
                 >
-                  {cat.image} {cat.name}
+                  {cat.name}
                 </button>
               ))}
             </div>
-
-            {selectedCategory && selectedCategory.subcategories && (
-              <>
-                <h3 className="font-bold text-lg mt-6 mb-4">Subcategories</h3>
-                <div className="space-y-2">
-                  {selectedCategory.subcategories.map(sub => (
-                    <button
-                      key={sub}
-                      onClick={() => handleSubcategoryClick(sub)}
-                      className={`block w-full text-left px-4 py-2 rounded transition ${
-                        selectedSubcategory === sub
-                          ? 'bg-teal-100 text-teal-700'
-                          : 'hover:bg-gray-100'
-                      }`}
-                    >
-                      {sub}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
           </div>
         </aside>
 
         {/* Products Grid */}
         <main className="flex-1">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h1 className="text-2xl md:text-3xl font-bold">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-800">
               {selectedCategory
                 ? selectedCategory.name
                 : searchQuery
@@ -163,12 +140,12 @@ export default function ProductsPage() {
             <select
               value={sortBy}
               onChange={(e) => handleSort(e.target.value)}
-              className="border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:border-teal-500"
+              className="border-2 border-gray-200 rounded-lg px-4 py-2 focus:outline-none focus:border-teal-500"
             >
               <option value="featured">Sort by: Featured</option>
               <option value="price-low">Price: Low to High</option>
               <option value="price-high">Price: High to Low</option>
-              <option value="rating">Highest Rating</option>
+              <option value="name">Name: A to Z</option>
             </select>
           </div>
 
@@ -183,7 +160,6 @@ export default function ProductsPage() {
               <button
                 onClick={() => {
                   setSelectedCategory(null);
-                  setSelectedSubcategory(null);
                   window.history.pushState({}, '', '/products');
                   loadData();
                 }}
@@ -194,7 +170,9 @@ export default function ProductsPage() {
             </div>
           ) : (
             <>
-              <p className="text-gray-600 mb-4">{products.length} products found</p>
+              <p className="text-gray-600 mb-4">
+                Showing {products.length} {products.length === 1 ? 'product' : 'products'}
+              </p>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {products.map(product => (
                   <ProductCard key={product.id} product={product} />
